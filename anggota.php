@@ -3,6 +3,38 @@ require_once "config/database.php";
 
 /*
 |--------------------------------------------------------------------------
+| FITUR DOWNLOAD DATA (CSV / EXCEL)
+|--------------------------------------------------------------------------
+*/
+if (isset($_GET['download'])) {
+    // Set Header untuk mendownload file CSV
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename=Data_Anggota_' . date('Y-m-d_H-i-s') . '.csv');
+
+    // Buka output stream PHP
+    $output = fopen('php://output', 'w');
+
+    // Tambahkan UTF-8 BOM agar Karakter Spesial & Accent terbaca rapi di Microsoft Excel
+    fputs($output, "\xEF\xBB\xBF");
+
+    // Header Kolom pada Excel
+    fputcsv($output, ['ID Anggota', 'Nama Anggota', 'Alamat', 'No Telepon', 'Tanggal Daftar']);
+
+    // Ambil Data dari Database PostgreSQL
+    $queryDownload = pg_query($conn, "SELECT id_anggota, nama_anggota, alamat, no_telepon, tanggal_daftar FROM anggota ORDER BY id_anggota DESC");
+
+    while ($row = pg_fetch_assoc($queryDownload)) {
+        // Format nomor telepon agar tidak terpotong format angka/scientific Excel
+        $row['no_telepon'] = "'" . $row['no_telepon'];
+        fputcsv($output, $row);
+    }
+
+    fclose($output);
+    exit;
+}
+
+/*
+|--------------------------------------------------------------------------
 | TAMBAH DATA
 |--------------------------------------------------------------------------
 */
@@ -233,6 +265,16 @@ $query = pg_query(
             background: #dc2626;
         }
 
+        .btn-download {
+            background: #10b981;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
         table {
             width: 100%;
 
@@ -436,12 +478,21 @@ $query = pg_query(
     <h1>Data Anggota</h1>
 
 
-    <a
-        href="dashboard.php"
-        class="btn btn-back"
-    >
-        ← Kembali ke Dashboard
-    </a>
+    <div class="header-actions">
+        <a
+            href="dashboard.php"
+            class="btn btn-back"
+        >
+            ← Kembali ke Dashboard
+        </a>
+
+        <a
+            href="anggota.php?download=csv"
+            class="btn btn-download"
+        >
+            📥 Download Data (.csv)
+        </a>
+    </div>
 
 
     <table>
@@ -577,4 +628,3 @@ $query = pg_query(
 </body>
 
 </html>
-```
